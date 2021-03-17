@@ -197,6 +197,63 @@ project "OGLCompiler"
 		runtime "Release"
 		optimize "on"
 
+project "SPIRV"
+	kind "StaticLib"
+	language "C++"
+	staticruntime "on"
+
+	targetdir ("build/" .. outputdir .. "/%{prj.name}")
+	objdir ("obj/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"SPIRV/GlslangToSpv.cpp",
+		"SPIRV/InReadableOrder.cpp",
+		"SPIRV/Logger.cpp",
+		"SPIRV/SpvBuilder.cpp",
+		"SPIRV/SpvPostProcess.cpp",
+		"SPIRV/doc.cpp",
+		"SPIRV/SpvTools.cpp",
+		"SPIRV/disassemble.cpp",
+		"SPIRV/CInterface/spirv_c_interface.cpp"
+	}
+
+	includedirs
+	{
+		"../glslang",
+		"../SPIRV"
+	}
+
+
+	filter "system:windows"
+		systemversion "latest"
+		cppdialect "C++17"
+
+		files
+		{
+			"glslang/OSDependent/Windows/ossource.cpp"
+		}
+
+	filter "system:linux"
+		-- https://github.com/premake/premake-core/wiki/pic
+		pic "On"
+		buildoptions "-std=c++11"
+		systemversion "latest"
+
+		files
+		{
+			"glslang/OSDependent/Unix/ossource.cpp"
+		}
+
+	filter "configurations:Debug"
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Release"
+		runtime "Release"
+		optimize "on"
+
+
 
 project "glslang"
 	kind "StaticLib"
@@ -221,7 +278,8 @@ project "glslang"
 	{
 		"OGLCompiler",
 		"OSDependent",
-		"MachineIndependent"
+		"MachineIndependent",
+		"SPIRV"
 	}
 
 	filter "system:windows"
@@ -279,58 +337,3 @@ project "HLSL"
 		runtime "Release"
 		optimize "on"
 
-project "SPIRV"
-	kind "StaticLib"
-	language "C++"
-	staticruntime "on"
-
-	targetdir ("build/" .. outputdir .. "/%{prj.name}")
-	objdir ("obj/" .. outputdir .. "/%{prj.name}")
-
-	files
-	{
-		"SPIRV/GlslangToSpv.cpp",
-		"SPIRV/InReadableOrder.cpp",
-		"SPIRV/Logger.cpp",
-		"SPIRV/SpvBuilder.cpp",
-		"SPIRV/SpvPostProcess.cpp",
-		"SPIRV/doc.cpp",
-		"SPIRV/SpvTools.cpp",
-		"SPIRV/disassemble.cpp",
-		"SPIRV/CInterface/spirv_c_interface.cpp"
-	}
-
-	includedirs
-	{
-		"../glslang",
-		"../SPIRV"
-	}
-
-
-	filter "system:windows"
-		systemversion "latest"
-		cppdialect "C++17"
-
-		files
-		{
-			"glslang/OSDependent/Windows/ossource.cpp"
-		}
-
-	filter "system:linux"
-		-- https://github.com/premake/premake-core/wiki/pic
-		pic "On"
-		buildoptions "-std=c++11"
-		systemversion "latest"
-
-		files
-		{
-			"glslang/OSDependent/Unix/ossource.cpp"
-		}
-
-	filter "configurations:Debug"
-		runtime "Debug"
-		symbols "on"
-
-	filter "configurations:Release"
-		runtime "Release"
-		optimize "on"
