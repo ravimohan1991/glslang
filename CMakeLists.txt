@@ -1,3 +1,10 @@
+#[[
+    Abstractions and Models are NOT at WAR!
+                                            - Cobwoy's Talisman
+    But Abstractions don't care and Models can't understand!!
+                                            - Lul, Practicality
+ ]]
+
 # CAUTION: HIGHLY GENERIC CMAKE BUILD. ALERT ALWAYS!
 
 # Set the project name and version
@@ -55,3 +62,40 @@ target_include_directories(GlSlang
 )
 
 target_compile_definitions(GlSlang PUBLIC GlSlang)
+
+#[[
+ *                                          /\
+ *                                         / /
+ *                                      /\| |
+ *                                      | | |/\
+ *                                      | | / /
+ *                                      | `  /
+ *                                      `\  (___
+ *                                     _.->  ,-.-.
+ *                                  _.'      |  \ \
+ *                                 /    _____| 0 |0\
+ *                                |    /`    `^-.\.-'`-._
+ *                                |   |                  `-._
+ *                                |   :                      `.
+ *                                \    `._     `-.__         O.'
+ *         _.--,                   \     `._     __.^--._O_..-'
+ *        `---, `.                  `\     /` ` `
+ *             `\ `,                  `\   |
+ *              |   :                   ;  |
+ *              /    `.              ___|__|___
+ *             /       `.           (          )
+ *            /    `---.:____...---' `--------`.
+ *           /        (         `.      __      `.
+ *          |          `---------' _   /  \       \
+ *          |    .-.      _._     (_)  `--'        \
+ *          |   (   )    /   \                       \
+ *           \   `-'     \   /                       ;-._
+ *            \           `-'           \           .'   `.
+ *            /`.                  `\    `\     _.-'`-.    `.___
+ *           |   `-._                `\    `\.-'       `-.   ,--`
+ *            \      `--.___        ___`\    \           ||^\\
+ *             `._        | ``----''     `.   `\         `'  `
+ *                `--;     \  jgs          `.   `.
+ *                   //^||^\\               //^||^\\
+ *                   '  `'  `               '   '  `
+ ]]
