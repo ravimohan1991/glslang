@@ -22,8 +22,8 @@ else(UNIX)
 list(APPEND COMMONC glslang/OSDependent/Unix/ossource.cpp)
 endif()
 list(APPEND COMMONC glslang/GenericCodeGen/CodeGen.cpp glslang/GenericCodeGen/Link.cpp
-	glslang/MachineIndependent/glslang.m4 glslang/MachineIndependent/glslang.y
-	OGLCompilersDLL/InitializeDll.cpp glslang/CInterface/glslang_c_interface.cpp)
+        glslang/MachineIndependent/glslang.y
+        glslang/CInterface/glslang_c_interface.cpp)
 file(GLOB_RECURSE MACHINEINDEPENDENTC glslang/MachineIndependent/*.cpp)
 file(GLOB_RECURSE SPIRVC SPIRV/*.cpp)
 file(GLOB HLSLC glslang/HLSL/*.cpp)
@@ -32,7 +32,7 @@ file(GLOB HLSLC glslang/HLSL/*.cpp)
 file(GLOB_RECURSE MACHINEINDEPENDENTH glslang/MachineIndependent/*.h)
 file(GLOB_RECURSE SPIRVH SPIRV/*.h)
 file(GLOB HLSLH glslang/HLSL/*.h)
-list(APPEND COMMONH glslang/OSDependent/osinclude.h OGLCompilersDLL/InitializeDll.h)
+list(APPEND COMMONH glslang/OSDependent/osinclude.h)
 
 # Building the project (STATIC or DYNAMIC (SHARED))
 if (BUILD_SHARED_LIBS)
