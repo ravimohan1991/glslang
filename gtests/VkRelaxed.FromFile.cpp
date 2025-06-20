@@ -42,12 +42,12 @@
 #include "glslang/MachineIndependent/iomapper.h"
 #include "glslang/MachineIndependent/reflection.h"
 
-#ifndef GLSLANG_WEB
 namespace glslangtest {
 namespace {
 
 struct vkRelaxedData {
     std::vector<std::string> fileNames;
+    std::vector<std::vector<std::string>> resourceSetBindings;
 };
 
 using VulkanRelaxedTest = GlslangTest <::testing::TestWithParam<vkRelaxedData>>;
@@ -106,8 +106,8 @@ bool verifyIOMapping(std::string& linkingError, glslang::TProgram& program) {
                 auto inQualifier = in.getType()->getQualifier();
                 auto outQualifier = out->second->getType()->getQualifier();
                 success &= outQualifier.layoutLocation == inQualifier.layoutLocation;
-            }
-            else {
+            // These are not part of a matched interface. Other cases still need to be added.
+            } else if (name != "gl_FrontFacing" && name != "gl_FragCoord") {
                 success &= false;
             }
         }
@@ -191,6 +191,7 @@ bool verifyIOMapping(std::string& linkingError, glslang::TProgram& program) {
 TEST_P(VulkanRelaxedTest, FromFile)
 {
     const auto& fileNames = GetParam().fileNames;
+    const auto& resourceSetBindings = GetParam().resourceSetBindings;
     Semantics semantics = Semantics::Vulkan;
     const size_t fileCount = fileNames.size();
     const EShMessages controls = DeriveOptions(Source::GLSL, semantics, Target::BothASTAndSpv);
@@ -230,19 +231,27 @@ TEST_P(VulkanRelaxedTest, FromFile)
     result.linkingOutput = program.getInfoLog();
     result.linkingError = program.getInfoDebugLog();
 
-    unsigned int stage = 0;
-    glslang::TIntermediate* firstIntermediate = nullptr;
-    while (!program.getIntermediate((EShLanguage)stage) && stage < EShLangCount) { stage++; }
-    firstIntermediate = program.getIntermediate((EShLanguage)stage);
+    if (!resourceSetBindings.empty()) {
+        assert(resourceSetBindings.size() == fileNames.size());
+        for (size_t i = 0; i < shaders.size(); i++)
+            shaders[i]->setResourceSetBinding(resourceSetBindings[i]);
+    }
 
-    glslang::TDefaultGlslIoResolver resolver(*firstIntermediate);
-    glslang::TGlslIoMapper ioMapper;
+    glslang::TIoMapResolver *resolver;
+    for (unsigned stage = 0; stage < EShLangCount; stage++) {
+        resolver = program.getGlslIoResolver((EShLanguage)stage);
+        if (resolver)
+            break;
+    }
+    glslang::TIoMapper *ioMapper = glslang::GetGlslIoMapper();
 
     if (success) {
-        success &= program.mapIO(&resolver, &ioMapper);
+        success &= program.mapIO(resolver, ioMapper);
         result.linkingOutput = program.getInfoLog();
         result.linkingError = program.getInfoDebugLog();
     }
+    delete ioMapper;
+    delete resolver;
 
     success &= verifyIOMapping(result.linkingError, program);
     result.validationResult = success;
@@ -257,7 +266,6 @@ TEST_P(VulkanRelaxedTest, FromFile)
                     spirv_binary, &logger, &options());
 
                 std::ostringstream disassembly_stream;
-                spv::Parameterize();
                 spv::Disassemble(disassembly_stream, spirv_binary);
                 result.spirvWarningsErrors += logger.getAllMessages();
                 result.spirv += disassembly_stream.str();
@@ -283,14 +291,15 @@ TEST_P(VulkanRelaxedTest, FromFile)
 INSTANTIATE_TEST_SUITE_P(
     Glsl, VulkanRelaxedTest,
     ::testing::ValuesIn(std::vector<vkRelaxedData>({
-        {{"vk.relaxed.frag"}},
-        {{"vk.relaxed.link1.frag", "vk.relaxed.link2.frag"}},
-        {{"vk.relaxed.stagelink.vert", "vk.relaxed.stagelink.frag"}},
-        {{"vk.relaxed.errorcheck.vert", "vk.relaxed.errorcheck.frag"}},
+        {{"vk.relaxed.frag"}, {}},
+        {{"vk.relaxed.link1.frag", "vk.relaxed.link2.frag"}, {}},
+        {{"vk.relaxed.stagelink.0.0.vert", "vk.relaxed.stagelink.0.1.vert", "vk.relaxed.stagelink.0.2.vert", "vk.relaxed.stagelink.0.0.frag", "vk.relaxed.stagelink.0.1.frag", "vk.relaxed.stagelink.0.2.frag"}, {}},
+        {{"vk.relaxed.stagelink.vert", "vk.relaxed.stagelink.frag"}, {}},
+        {{"vk.relaxed.errorcheck.vert", "vk.relaxed.errorcheck.frag"}, {}},
+        {{"vk.relaxed.changeSet.vert", "vk.relaxed.changeSet.frag" }, { {"0"}, {"1"} } },
     }))
 );
 // clang-format on
 
 }  // anonymous namespace
 }  // namespace glslangtest
-#endif 

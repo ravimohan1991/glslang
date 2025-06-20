@@ -39,10 +39,10 @@
 
 #include "TestFixture.h"
 
+#include "glslang/MachineIndependent/localintermediate.h"
 #include "glslang/MachineIndependent/iomapper.h"
 #include "glslang/MachineIndependent/reflection.h"
 
-#ifndef GLSLANG_WEB
 namespace glslangtest {
 namespace {
 
@@ -109,7 +109,52 @@ bool verifyIOMapping(std::string& linkingError, glslang::TProgram& program) {
                 success &= outQualifier.layoutLocation == inQualifier.layoutLocation;
             }
             else {
-                success &= false;
+                if (!in.getType()->isStruct()) {
+                    bool found = false;
+                    for (auto outIt : pipeOut) {
+                        if (outIt.second->getType()->isStruct()) {
+                            unsigned int baseLoc = outIt.second->getType()->getQualifier().hasLocation() ?
+                                outIt.second->getType()->getQualifier().layoutLocation :
+                                std::numeric_limits<unsigned int>::max();
+                            for (size_t j = 0; j < outIt.second->getType()->getStruct()->size(); j++) {
+                                baseLoc = (*outIt.second->getType()->getStruct())[j].type->getQualifier().hasLocation() ?
+                                    (*outIt.second->getType()->getStruct())[j].type->getQualifier().layoutLocation : baseLoc;
+                                if (baseLoc != std::numeric_limits<unsigned int>::max()) {
+                                    if (baseLoc == in.getType()->getQualifier().layoutLocation) {
+                                        found = true;
+                                        break;
+                                    }
+                                    baseLoc += glslang::TIntermediate::computeTypeLocationSize(*(*outIt.second->getType()->getStruct())[j].type, EShLangVertex);
+                                }
+                            }
+                            if (found) {
+                                break;
+                            }
+                        }
+                    }
+                    success &= found;
+                }
+                else {
+                    unsigned int baseLoc = in.getType()->getQualifier().hasLocation() ? in.getType()->getQualifier().layoutLocation : -1;
+                    for (size_t j = 0; j < in.getType()->getStruct()->size(); j++) {
+                        baseLoc = (*in.getType()->getStruct())[j].type->getQualifier().hasLocation() ?
+                            (*in.getType()->getStruct())[j].type->getQualifier().layoutLocation : baseLoc;
+                        if (baseLoc != std::numeric_limits<unsigned int>::max()) {
+                            bool isMemberFound = false;
+                            for (auto outIt : pipeOut) {
+                                if (baseLoc == outIt.second->getType()->getQualifier().layoutLocation) {
+                                    isMemberFound = true;
+                                    break;
+                                }
+                            }
+                            if (!isMemberFound) {
+                                success &= false;
+                                break;
+                            }
+                            baseLoc += glslang::TIntermediate::computeTypeLocationSize(*(*in.getType()->getStruct())[j].type, EShLangVertex);
+                        }
+                    }
+                }
             }
         }
     }
@@ -240,19 +285,21 @@ TEST_P(GlslMapIOTest, FromFile)
     result.linkingOutput = program.getInfoLog();
     result.linkingError = program.getInfoDebugLog();
 
-    unsigned int stage = 0;
-    glslang::TIntermediate* firstIntermediate = nullptr;
-    while (!program.getIntermediate((EShLanguage)stage) && stage < EShLangCount) { stage++; }
-    firstIntermediate = program.getIntermediate((EShLanguage)stage);
-
-    glslang::TDefaultGlslIoResolver resolver(*firstIntermediate);
-    glslang::TGlslIoMapper ioMapper;
+    glslang::TIoMapResolver *resolver;
+    for (unsigned stage = 0; stage < EShLangCount; stage++) {
+        resolver = program.getGlslIoResolver((EShLanguage)stage);
+        if (resolver)
+            break;
+    }
+    glslang::TIoMapper *ioMapper = glslang::GetGlslIoMapper();
 
     if (success) {
-        success &= program.mapIO(&resolver, &ioMapper);
+        success &= program.mapIO(resolver, ioMapper);
         result.linkingOutput = program.getInfoLog();
         result.linkingError = program.getInfoDebugLog();
     }
+    delete ioMapper;
+    delete resolver;
 
     success &= verifyIOMapping(result.linkingError, program);
     result.validationResult = success;
@@ -267,7 +314,6 @@ TEST_P(GlslMapIOTest, FromFile)
                     spirv_binary, &logger, &options());
 
                 std::ostringstream disassembly_stream;
-                spv::Parameterize();
                 spv::Disassemble(disassembly_stream, spirv_binary);
                 result.spirvWarningsErrors += logger.getAllMessages();
                 result.spirv += disassembly_stream.str();
@@ -295,6 +341,11 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(std::vector<IoMapData>({
         {{"iomap.crossStage.vert", "iomap.crossStage.frag" }, Semantics::OpenGL},
         {{"iomap.crossStage.2.vert", "iomap.crossStage.2.geom", "iomap.crossStage.2.frag" }, Semantics::OpenGL},
+        {{"iomap.blockOutVariableIn.vert", "iomap.blockOutVariableIn.frag"}, Semantics::OpenGL},
+        {{"iomap.variableOutBlockIn.vert", "iomap.variableOutBlockIn.frag"}, Semantics::OpenGL},
+        {{"iomap.blockOutVariableIn.2.vert", "iomap.blockOutVariableIn.geom"}, Semantics::OpenGL},
+        {{"iomap.variableOutBlockIn.2.vert", "iomap.variableOutBlockIn.geom"}, Semantics::OpenGL},
+        {{"iomap.mismatchedBufferTypes.vert", "iomap.mismatchedBufferTypes.frag"}, Semantics::OpenGL},
         // vulkan semantics
         {{"iomap.crossStage.vk.vert", "iomap.crossStage.vk.geom", "iomap.crossStage.vk.frag" }, Semantics::Vulkan},
     }))
@@ -303,4 +354,3 @@ INSTANTIATE_TEST_SUITE_P(
 
 }  // anonymous namespace
 }  // namespace glslangtest
-#endif 

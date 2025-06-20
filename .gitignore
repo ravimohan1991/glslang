@@ -2,7 +2,9 @@
 *.a
 *.so
 *.exe
+.cache/
 .vscode/
+.vs/
 tags
 TAGS
 bazel-*
@@ -11,6 +13,7 @@ Test/localResults/
 External/googletest
 External/spirv-tools
 out/
+CMakeUserPresets.json
 
 # GN generated files
 .cipd/
@@ -18,3 +21,7 @@ out/
 third_party/
 buildtools/
 tools/
+
+# Random OS stuff
+.DS_Store
+._*
